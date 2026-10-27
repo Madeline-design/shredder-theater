@@ -146,6 +146,56 @@
 - 指示灯默认暗，进纸时点亮为 `--accent`，碎完缓慢熄灭
 - 碎屑从出纸口**下方**生成，落在机身底部形成一小堆
 
+## 浅色系专属：让机器浮起来
+
+奶油治愈这类浅色主题有个固定坑——`--panel`（白）和 `--bg-2`（浅米）和背景挨得太近，
+机身会"陷进"背景里，看着像一张浮在纸上的卡片而不是一台机器。四个必做动作：
+
+1. **机身另起三件套**：给机器单独定义 `--face`（近白）→ `--face-2`（更深的米色）渐变 +
+   `--edge` 描边色，不要复用 `--panel` / `--bg-2`。
+2. **进纸口要用实色深槽**：`linear-gradient(180deg,#7d6a5a,#b39c8a)` 这种实色 + 内阴影才读得出"凹槽"。
+   用半透明深色叠在浅背景上，只会得到一条灰线。
+3. **投影加重**：机身投影的模糊半径和浓度都要比深色系更大更深（浅底上阴影才看得见）。
+4. **滚轮窗保持最亮**：机器上唯一的高亮区是滚轮窗和顶盖高光，全场唯一亮部留给"纸"。
+
+```css
+:root{
+  --face:#fffdfb;      /* 机身亮面 */
+  --face-2:#eadfd4;    /* 机身暗面 */
+  --edge:#dccab8;      /* 机身描边 */
+}
+.machine{
+  background:linear-gradient(160deg,var(--face),var(--face-2));
+  border:1px solid var(--edge);
+  box-shadow:0 24px 48px -22px rgba(90,66,54,.55), inset 0 1px 0 rgba(255,255,255,.95);
+}
+.feed-slot{
+  background:linear-gradient(180deg,#7d6a5a,#b39c8a);
+  box-shadow:inset 0 2px 4px rgba(58,47,40,.45), 0 1px 0 rgba(255,255,255,.85);
+}
+```
+
+## 窄屏（CJK）不能被挤断行
+
+中文没有词间空格，flex 收缩时会把两个字拆到两行。中文标题在 flex 容器里必须：
+
+```css
+.machine-title b{white-space:nowrap;flex:none;}          /* 主标题不许断 */
+.machine-title span{flex:1;min-width:0;overflow:hidden;   /* 型号串：省略号 */
+  text-overflow:ellipsis;white-space:nowrap;}
+@media (max-width:400px){ .machine-title span{display:none;} }  /* 窄屏直接藏掉型号串 */
+```
+
+## 纸屑堆要有"战果"感
+
+纸屑是这场演出的战利品，太小太淡就白演了：
+
+- 单条宽度 **4–9px**，长度 10–32px
+- 横向铺开 **±30px**（不是齐刷刷一条线）
+- 落点贴近场地底部
+- 颜色要比背景**深一到两档**，否则在浅底上完全看不见
+- 每条加 `0 1px 2px rgba(0,0,0,.18)` 投影，靠投影读出层次
+
 ## 避坑
 
 - 不用 emoji 当主视觉（🗑️ 一下就把氛围拉回玩具感）
@@ -153,3 +203,6 @@
 - 不用渐变文字 + 发光按钮的通用 SaaS 风格
 - 不做"居中一个标题 + 一个按钮"的空布局，页面至少要有三层信息：机身、托盘、落点文案
 - 深底正文对比度 ≥ 4.5:1；不要用 `--ink-dim` 当正文色
+- 浅色主题别直接拿 `--panel` 当机身底色（会和背景糊成一片），单独开 `--face` / `--edge`
+- 中文标题放进 flex 容器一定要 `white-space:nowrap`，否则窄屏会竖排成两行
+- 纸屑别做得太小太淡，浅底上要靠"更深的颜色 + 投影"才看得见

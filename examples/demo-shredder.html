@@ -33,7 +33,10 @@
 
   --machine-w:clamp(230px,74vw,380px);
   --field-h:clamp(64px,12vh,112px);
-  --final-h:clamp(66px,11vh,96px);
+  --final-h:clamp(58px,10vh,84px);
+  --face:#fffdfb;
+  --face-2:#eadfd4;
+  --edge:#dccab8;
 }
 
 *{box-sizing:border-box;}
@@ -84,9 +87,9 @@ body{
 .machine-wrap{position:relative;display:flex;flex-direction:column;align-items:center;}
 .machine{position:relative;width:var(--machine-w);
   border-radius:16px;
-  background:linear-gradient(160deg,var(--panel),var(--bg-2));
-  border:1px solid var(--line);
-  box-shadow:0 20px 42px -24px rgba(90,66,54,.55), inset 0 1px 0 rgba(255,255,255,.8);
+  background:linear-gradient(160deg,var(--face),var(--face-2));
+  border:1px solid var(--edge);
+  box-shadow:0 24px 48px -22px rgba(90,66,54,.55), inset 0 1px 0 rgba(255,255,255,.95);
   padding-bottom:12px;
   transform-origin:50% 60%;
 }
@@ -99,15 +102,15 @@ body{
   100%{transform:translateX(0)}
 }
 .machine-lip{height:15px;border-radius:16px 16px 0 0;
-  background:linear-gradient(180deg,#fff,var(--panel));
-  border-bottom:1px solid var(--line);}
+  background:linear-gradient(180deg,#fffdfb,var(--face));
+  border-bottom:1px solid var(--edge);}
 /* 进纸口 */
-.feed-slot{height:6px;margin:0 12px;border-radius:3px;
-  background:linear-gradient(180deg,rgba(58,47,40,.26),rgba(58,47,40,.08));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.7), inset 0 -2px 3px rgba(58,47,40,.16);
+.feed-slot{height:7px;margin:0 12px;border-radius:3px;
+  background:linear-gradient(180deg,#7d6a5a,#b39c8a);
+  box-shadow:inset 0 2px 4px rgba(58,47,40,.45), 0 1px 0 rgba(255,255,255,.85);
   position:relative;}
-.feed-slot::after{content:"";position:absolute;left:18%;right:18%;top:1px;height:2px;border-radius:2px;
-  background:rgba(255,255,255,.55);}
+.feed-slot::after{content:"";position:absolute;left:16%;right:16%;bottom:1px;height:1px;border-radius:1px;
+  background:rgba(58,47,40,.28);}
 .machine-body{position:relative;padding:15px 16px 14px;}
 .lamp{position:absolute;top:15px;right:16px;width:11px;height:11px;border-radius:50%;
   background:rgba(58,47,40,.10);border:1px solid var(--line);
@@ -117,8 +120,10 @@ body{
   animation:breathe 1.6s ease-in-out infinite;}
 @keyframes breathe{0%,100%{opacity:.82}50%{opacity:1}}
 .machine-title{display:flex;align-items:baseline;gap:10px;padding-right:26px;}
-.machine-title b{font-size:.78rem;font-weight:600;letter-spacing:.2em;color:var(--ink);}
-.machine-title span{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;color:var(--ink-dim);}
+.machine-title b{font-size:.78rem;font-weight:600;letter-spacing:.2em;color:var(--ink);
+  white-space:nowrap;flex:none;}
+.machine-title span{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;color:var(--ink-dim);
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 /* 滚轮窗 */
 .roller-window{position:relative;height:24px;margin-top:13px;border-radius:8px;overflow:hidden;
   background:linear-gradient(180deg,rgba(58,47,40,.10),rgba(58,47,40,.04));
@@ -142,7 +147,7 @@ body{
   width:var(--w);height:var(--h);border-radius:1px;
   background:var(--c);opacity:0;
   transform:translate3d(var(--sx),var(--sy),0) rotate(var(--sr));
-  box-shadow:0 1px 0 rgba(58,47,40,.10);
+  box-shadow:0 1px 2px rgba(58,47,40,.20);
   animation:
     shredMove var(--dur) cubic-bezier(.4,0,.7,1) var(--delay) forwards,
     shredFade var(--fade) linear var(--delay) forwards;
@@ -208,6 +213,10 @@ body.dragging .dropzone{border-color:var(--accent);background:rgba(255,255,255,.
 .demo:active{transform:translateY(1px);}
 .demo[disabled]{opacity:.5;cursor:not-allowed;transform:none;}
 .foot-note{margin:2px 0 0;font-size:.66rem;letter-spacing:.1em;color:var(--ink-dim);}
+
+@media (max-width:400px){
+  .machine-title span{display:none;}
+}
 
 @media (prefers-reduced-motion:reduce){
   .shred{animation-duration:1ms,1ms;}
@@ -394,7 +403,7 @@ const els = {
 
 els.finalLine.textContent = FINAL_MESSAGE;
 
-const SHRED_COLORS = ['#fffdf9','#f7ece4','#f3e2d9','#efe8dc','#e7eee4'];
+const SHRED_COLORS = ['#fffdf9','#f6e9de','#ead6c9','#ddc6b6','#ccd6c9','#e4dbcd'];
 const DEMO_FILES = ['旧草稿.docx','会议纪要.pdf','截图 2024-11-08.png'];
 
 let queue = [];        /* 待碎的文件卡元素 */
@@ -448,12 +457,12 @@ function spawnShred(){
   const h = f.clientHeight || 80;
   const el = document.createElement('i');
   el.className = 'shred';
-  const w = 3 + Math.random() * 5;
+  const w = 4 + Math.random() * 5;
   const hh = 10 + Math.random() * 22;
   const dur = 900 + Math.random() * 700;
-  el.style.setProperty('--x', (Math.random() * 34 - 17) + 'px');
-  el.style.setProperty('--sx', (Math.random() * 40 - 20) + 'px');
-  el.style.setProperty('--sy', (h - 4 - Math.random() * 16) + 'px');
+  el.style.setProperty('--x', (Math.random() * 68 - 34) + 'px');
+  el.style.setProperty('--sx', (Math.random() * 56 - 28) + 'px');
+  el.style.setProperty('--sy', (h - 2 - Math.random() * 14) + 'px');
   el.style.setProperty('--sr', (Math.random() * 720 - 360) + 'deg');
   el.style.setProperty('--dur', dur + 'ms');
   el.style.setProperty('--delay', (Math.random() * 120) + 'ms');
