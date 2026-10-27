@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>碎纸机剧场 · 该翻篇了</title>
+<!--
+  ┌──────────────────────────────────────────────────────────────┐
+  │ 改这两处就能换皮 / 换词：                                       │
+  │   1) 收尾文案 → 搜 FINAL_MESSAGE（JS 顶部），页面文字自动跟着变   │
+  │   2) 氛围配色 → 下面 :root 里的 CSS 变量（当前：奶油治愈）        │
+  │ 当前配色：奶油治愈（浅色系 / 粉米）—— 收尾句是「该翻篇了」，       │
+  │   语气是放下与往前走，不是冷硬的删除，所以底色走暖白粉米，        │
+  │   珊瑚色做指示灯、鼠尾草绿做碎屑高光，冷动作落在暖纸上。          │
+  └──────────────────────────────────────────────────────────────┘
+-->
+<style>
+/* ============ 氛围配色：奶油治愈（改 :root 即可整体换肤） ============ */
+:root{
+  --bg:#faf5f0;
+  --bg-2:#f3e9e2;
+  --panel:#ffffff;
+  --line:#e7d9cd;
+  --ink:#3a2f28;
+  --ink-dim:#9b8a7c;   /* 只用于装饰微标签，不当正文色 */
+  --ink-mid:#6b5b4f;   /* 可读性次级文字，对 --bg 对比度 ≈ 6:1 */
+  --accent:#e0917f;
+  --accent-2:#9fb5a0;
+
+  --font-serif:"Songti SC","STSong","SimSun",Georgia,"Times New Roman",serif;
+  --font-sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"SF Mono","JetBrains Mono",Consolas,monospace;
+
+  --machine-w:clamp(230px,74vw,380px);
+  --field-h:clamp(64px,12vh,112px);
+  --final-h:clamp(66px,11vh,96px);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  min-height:100vh;min-height:100dvh;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-sans);
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ================= ① 舞台层：柔光渐变 + 胶片颗粒 ================= */
+.stage{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(120% 70% at 50% -6%, #fffdfa 0%, rgba(255,253,250,0) 62%),
+    radial-gradient(90% 55% at 50% 108%, #f0ded4 0%, rgba(240,222,212,0) 68%),
+    linear-gradient(168deg, var(--bg) 0%, var(--bg-2) 100%);
+}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.045;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.shade{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(120% 92% at 50% 38%,transparent 42%,rgba(90,66,54,.16) 100%);
+}
+
+/* ================= 主体排布 ================= */
+.theater{position:relative;z-index:2;
+  min-height:100vh;min-height:100dvh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:clamp(14px,2.6vh,24px);
+  padding:clamp(22px,5vh,44px) 18px calc(clamp(22px,5vh,44px) + env(safe-area-inset-bottom));
+  text-align:center;
+}
+
+/* ---- 顶部微标签 / 首次点击提示 ---- */
+.eyebrow{font-size:.72rem;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--ink-mid);display:flex;align-items:center;gap:10px;}
+.eyebrow::before,.eyebrow::after{content:"";width:26px;height:1px;background:var(--line);}
+#hint{transition:opacity .4s;opacity:1;}
+#hint.fade{opacity:.45;}
+.hint-pulse{animation:hintPulse 2.2s ease-in-out infinite;}
+@keyframes hintPulse{0%,100%{opacity:.62}50%{opacity:1}}
+
+/* ================= ② 碎纸机层（纯 CSS 绘制） ================= */
+.machine-wrap{position:relative;display:flex;flex-direction:column;align-items:center;}
+.machine{position:relative;width:var(--machine-w);
+  border-radius:16px;
+  background:linear-gradient(160deg,var(--panel),var(--bg-2));
+  border:1px solid var(--line);
+  box-shadow:0 20px 42px -24px rgba(90,66,54,.55), inset 0 1px 0 rgba(255,255,255,.8);
+  padding-bottom:12px;
+  transform-origin:50% 60%;
+}
+.machine.shaking{animation:machineShake .52s steps(8,end);}
+@keyframes machineShake{
+  0%{transform:translateX(0)}
+  25%{transform:translateX(-2px)}
+  50%{transform:translateX(2px)}
+  75%{transform:translateX(-1px)}
+  100%{transform:translateX(0)}
+}
+.machine-lip{height:15px;border-radius:16px 16px 0 0;
+  background:linear-gradient(180deg,#fff,var(--panel));
+  border-bottom:1px solid var(--line);}
+/* 进纸口 */
+.feed-slot{height:6px;margin:0 12px;border-radius:3px;
+  background:linear-gradient(180deg,rgba(58,47,40,.26),rgba(58,47,40,.08));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7), inset 0 -2px 3px rgba(58,47,40,.16);
+  position:relative;}
+.feed-slot::after{content:"";position:absolute;left:18%;right:18%;top:1px;height:2px;border-radius:2px;
+  background:rgba(255,255,255,.55);}
+.machine-body{position:relative;padding:15px 16px 14px;}
+.lamp{position:absolute;top:15px;right:16px;width:11px;height:11px;border-radius:50%;
+  background:rgba(58,47,40,.10);border:1px solid var(--line);
+  box-shadow:inset 0 1px 1px rgba(58,47,40,.18);
+  transition:background .5s ease,box-shadow .5s ease;}
+.lamp.lit{background:var(--accent);box-shadow:0 0 14px 3px rgba(224,145,127,.7);
+  animation:breathe 1.6s ease-in-out infinite;}
+@keyframes breathe{0%,100%{opacity:.82}50%{opacity:1}}
+.machine-title{display:flex;align-items:baseline;gap:10px;padding-right:26px;}
+.machine-title b{font-size:.78rem;font-weight:600;letter-spacing:.2em;color:var(--ink);}
+.machine-title span{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;color:var(--ink-dim);}
+/* 滚轮窗 */
+.roller-window{position:relative;height:24px;margin-top:13px;border-radius:8px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(58,47,40,.10),rgba(58,47,40,.04));
+  box-shadow:inset 0 1px 3px rgba(58,47,40,.22), inset 0 -1px 0 rgba(255,255,255,.5);}
+.rollers{position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,rgba(58,47,40,.18) 0 7px,rgba(255,255,255,.85) 7px 14px);}
+.machine.shaking .rollers{animation:roll .5s linear infinite;}
+@keyframes roll{from{background-position:0 0}to{background-position:14px 0}}
+/* 散热格栅 */
+.grille{margin-top:12px;height:7px;border-radius:4px;
+  background:repeating-linear-gradient(90deg,var(--line) 0 3px,transparent 3px 9px);opacity:.75;}
+/* 出纸口 */
+.outlet{height:9px;margin:0 24px;border-radius:0 0 7px 7px;
+  background:linear-gradient(180deg,rgba(58,47,40,.30),rgba(58,47,40,.10));
+  box-shadow:inset 0 3px 4px rgba(58,47,40,.30);}
+
+/* ================= ④ 动效层：纸屑 ================= */
+.shred-field{position:relative;width:var(--machine-w);height:var(--field-h);overflow:hidden;
+  margin-top:-2px;}
+.shred{position:absolute;left:calc(50% + var(--x));top:0;
+  width:var(--w);height:var(--h);border-radius:1px;
+  background:var(--c);opacity:0;
+  transform:translate3d(var(--sx),var(--sy),0) rotate(var(--sr));
+  box-shadow:0 1px 0 rgba(58,47,40,.10);
+  animation:
+    shredMove var(--dur) cubic-bezier(.4,0,.7,1) var(--delay) forwards,
+    shredFade var(--fade) linear var(--delay) forwards;
+}
+@keyframes shredMove{
+  0%{transform:translate3d(0,-10px,0) rotate(0deg);}
+  100%{transform:translate3d(var(--sx),var(--sy),0) rotate(var(--sr));}
+}
+@keyframes shredFade{
+  0%{opacity:0;}6%{opacity:1;}88%{opacity:1;}100%{opacity:.5;}
+}
+
+/* ================= ⑤ 文案层：收尾那句话 ================= */
+.final{min-height:var(--final-h);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;}
+.final.show{animation:finalIn .6s cubic-bezier(.16,1,.3,1) forwards;}
+@keyframes finalIn{
+  0%{opacity:0;transform:scale(.96);letter-spacing:.30em;}
+  100%{opacity:1;transform:scale(1);letter-spacing:.06em;}
+}
+.final-rule{width:clamp(56px,18vw,120px);height:1px;margin:0 0 13px;
+  background:linear-gradient(90deg,transparent,var(--line) 45%,var(--line) 55%,transparent);}
+.final-line{margin:0;font-family:var(--font-serif);
+  font-size:clamp(1.6rem,6vw,2.6rem);font-weight:500;letter-spacing:.06em;
+  color:var(--ink);text-align:center;line-height:1.3;
+  text-shadow:0 1px 0 rgba(255,255,255,.7);}
+
+/* ================= ③ 托盘层：待处理文件 ================= */
+.tray{width:min(100%,420px);}
+.tray-head{display:flex;align-items:center;justify-content:space-between;
+  font-size:.7rem;letter-spacing:.2em;color:var(--ink-mid);margin-bottom:8px;}
+.tray-head .count{font-family:var(--font-mono);letter-spacing:.06em;color:var(--ink-dim);}
+.dropzone{border:1px dashed var(--line);border-radius:14px;padding:14px;
+  background:rgba(255,255,255,.55);transition:border-color .25s,background .25s,box-shadow .25s;}
+body.dragging .dropzone{border-color:var(--accent);background:rgba(255,255,255,.92);
+  box-shadow:0 0 0 4px rgba(224,145,127,.16);}
+.filelist{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:7px;}
+.filelist:empty{margin:0;}
+.file{position:relative;display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:10px;background:var(--panel);
+  border:1px solid var(--line);box-shadow:0 2px 7px -5px rgba(90,66,54,.6);
+  transform-origin:50% 0%;}
+.file .fname{flex:1;min-width:0;font-family:var(--font-mono);font-size:.8rem;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file .fsize{flex:none;font-family:var(--font-mono);font-size:.66rem;color:var(--ink-dim);}
+.file.sucked{z-index:30;animation:suck .3s cubic-bezier(.4,0,.2,1) forwards;}
+@keyframes suck{
+  0%{transform:translate(0,0) scale(1) rotate(0deg);opacity:1;}
+  40%{transform:translate(calc(var(--dx) * .5),calc(var(--dy) * .5)) scaleY(.55) rotate(-2deg);opacity:.92;}
+  100%{transform:translate(var(--dx),var(--dy)) scaleY(.08) rotate(3deg);opacity:0;}
+}
+.dz-hint{margin:2px 0 0;font-size:.78rem;color:var(--ink-mid);line-height:1.6;}
+.dz-hint span{display:block;font-size:.7rem;color:var(--ink-dim);letter-spacing:.08em;}
+
+/* ================= 演示按钮 ================= */
+.demo{appearance:none;-webkit-appearance:none;cursor:pointer;
+  border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  font-family:var(--font-sans);font-size:.84rem;letter-spacing:.2em;
+  padding:13px 28px;border-radius:999px;
+  box-shadow:0 10px 22px -16px rgba(90,66,54,.9);
+  transition:background .2s,box-shadow .2s,transform .12s,border-color .2s;}
+.demo:hover{background:#fff;border-color:var(--accent);box-shadow:0 14px 26px -16px rgba(90,66,54,.95);}
+.demo:active{transform:translateY(1px);}
+.demo[disabled]{opacity:.5;cursor:not-allowed;transform:none;}
+.foot-note{margin:2px 0 0;font-size:.66rem;letter-spacing:.1em;color:var(--ink-dim);}
+
+@media (prefers-reduced-motion:reduce){
+  .shred{animation-duration:1ms,1ms;}
+  .machine.shaking{animation:none;}
+}
+</style>
+</head>
+<body>
+<!-- ① 舞台层 -->
+<div class="stage"></div>
+<div class="shade"></div>
+<div class="grain"></div>
+
+<main class="theater">
+  <div class="eyebrow"><span id="hint" class="hint-pulse">点一下开始 · 开启碎纸声</span></div>
+
+  <!-- ② 碎纸机层 -->
+  <section class="machine-wrap">
+    <div class="machine" id="machine">
+      <div class="machine-lip"></div>
+      <div class="feed-slot" id="feedSlot"></div>
+      <div class="machine-body">
+        <div class="lamp" id="lamp"></div>
+        <div class="machine-title"><b>碎纸机</b><span>SH&#8209;01 / PAPER DESTROYER</span></div>
+        <div class="roller-window"><div class="rollers"></div></div>
+        <div class="grille"></div>
+      </div>
+      <div class="outlet" id="outlet"></div>
+    </div>
+    <!-- ④ 动效层：纸屑从出纸口下方落下 -->
+    <div class="shred-field" id="shredField"></div>
+  </section>
+
+  <!-- ⑤ 文案层：最后出现 -->
+  <section class="final" id="final" aria-live="polite">
+    <div class="final-rule"></div>
+    <p class="final-line" id="finalLine">该翻篇了</p>
+  </section>
+
+  <!-- ③ 托盘层 -->
+  <section class="tray">
+    <div class="tray-head"><span>待处理</span><span class="count" id="trayCount">0</span></div>
+    <div class="dropzone" id="dropzone">
+      <ul class="filelist" id="filelist"></ul>
+      <p class="dz-hint">把文件拖到这里<span>只取文件名，不读取内容</span></p>
+    </div>
+  </section>
+
+  <button class="demo" id="demoBtn" type="button">演示删除</button>
+  <p class="foot-note">页面是模拟的，文件还好好地在你硬盘上</p>
+</main>
+
+<script>
+/* ============================================================
+   收尾文案：改这里，页面上的文字会跟着变
+   ============================================================ */
+const FINAL_MESSAGE = '该翻篇了';
+
+/* ============================================================
+   声音：全部用 Web Audio 现场合成，页面里没有一个音频文件
+   ============================================================ */
+const Sound = {
+  ctx:null, master:null, noiseBuf:null, hum:null, bed:null,
+  ensure(){
+    if(this.ctx){ if(this.ctx.state === 'suspended') this.ctx.resume(); return true; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return false;
+    try{ this.ctx = new AC(); }catch(e){ return false; }
+    const c = this.ctx;
+    this.master = c.createGain();
+    this.master.gain.value = 0.85;
+    this.master.connect(c.destination);
+    const len = Math.floor(c.sampleRate * 2);
+    const buf = c.createBuffer(1, len, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    this.noiseBuf = buf;
+    return true;
+  },
+  /* 机械嗡鸣：锯齿波 ~70Hz + 低通 */
+  humStart(){
+    if(!this.ctx || this.hum) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 70;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300; lp.Q.value = 6;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.09, t + 0.08);
+    o.connect(lp); lp.connect(g); g.connect(this.master);
+    o.start(t);
+    this.hum = {o:o, g:g};
+    /* 撕纸底噪 */
+    const src = c.createBufferSource(); src.buffer = this.noiseBuf; src.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.6;
+    const bg = c.createGain();
+    bg.gain.setValueAtTime(0.0001, t);
+    bg.gain.exponentialRampToValueAtTime(0.035, t + 0.1);
+    src.connect(bp); bp.connect(bg); bg.connect(this.master);
+    src.start(t);
+    this.bed = {src:src, bg:bg};
+  },
+  humStop(){
+    if(!this.ctx) return;
+    const c = this.ctx, t = c.currentTime;
+    if(this.hum){
+      this.hum.g.gain.cancelScheduledValues(t);
+      this.hum.g.gain.setValueAtTime(Math.max(this.hum.g.gain.value, 0.0001), t);
+      this.hum.g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      this.hum.o.stop(t + 0.4);
+      this.hum = null;
+    }
+    if(this.bed){
+      this.bed.bg.gain.cancelScheduledValues(t);
+      this.bed.bg.gain.setValueAtTime(Math.max(this.bed.bg.gain.value, 0.0001), t);
+      this.bed.bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      this.bed.src.stop(t + 0.35);
+      this.bed = null;
+    }
+  },
+  /* 碎纸声：bandpass 白噪声短脉冲 */
+  shred(){
+    if(!this.ctx) return;
+    const c = this.ctx, t = c.currentTime;
+    const src = c.createBufferSource(); src.buffer = this.noiseBuf; src.loop = true;
+    const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 600;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+    bp.frequency.value = 1500 + Math.random() * 2400;
+    bp.Q.value = 0.8 + Math.random() * 1.6;
+    const g = c.createGain();
+    const peak = 0.14 + Math.random() * 0.10;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05 + Math.random() * 0.07);
+    src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(this.master);
+    src.start(t, Math.random() * 1.5); src.stop(t + 0.25);
+  },
+  /* 纸被吸进进纸口 */
+  gulp(){
+    if(!this.ctx) return;
+    const c = this.ctx, t = c.currentTime;
+    const src = c.createBufferSource(); src.buffer = this.noiseBuf; src.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4;
+    bp.frequency.setValueAtTime(2600, t);
+    bp.frequency.exponentialRampToValueAtTime(700, t + 0.22);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.12, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.30);
+    src.connect(bp); bp.connect(g); g.connect(this.master);
+    src.start(t, Math.random()); src.stop(t + 0.35);
+  },
+  /* 收尾：sine 叮 880 → 1320Hz 指数衰减 */
+  ding(){
+    if(!this.ctx) return;
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(880, t);
+    o.frequency.exponentialRampToValueAtTime(1320, t + 0.18);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.20, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.10);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + 1.2);
+  }
+};
+
+/* ============================================================
+   演出控制
+   ============================================================ */
+const els = {
+  machine: document.getElementById('machine'),
+  feedSlot: document.getElementById('feedSlot'),
+  lamp: document.getElementById('lamp'),
+  shredField: document.getElementById('shredField'),
+  final: document.getElementById('final'),
+  finalLine: document.getElementById('finalLine'),
+  filelist: document.getElementById('filelist'),
+  trayCount: document.getElementById('trayCount'),
+  dropzone: document.getElementById('dropzone'),
+  demoBtn: document.getElementById('demoBtn'),
+  hint: document.getElementById('hint')
+};
+
+els.finalLine.textContent = FINAL_MESSAGE;
+
+const SHRED_COLORS = ['#fffdf9','#f7ece4','#f3e2d9','#efe8dc','#e7eee4'];
+const DEMO_FILES = ['旧草稿.docx','会议纪要.pdf','截图 2024-11-08.png'];
+
+let queue = [];        /* 待碎的文件卡元素 */
+let running = false;
+let unlocked = false;
+
+/* ---- 首次交互解锁音频（浏览器自动播放策略） ---- */
+function unlock(){
+  if(unlocked) return;
+  const ok = Sound.ensure();
+  unlocked = true;
+  els.hint.textContent = ok ? '把文件拖进来，或点下方演示按钮' : '此浏览器不支持音频，动画照常';
+  els.hint.classList.remove('hint-pulse');
+  els.hint.classList.add('fade');
+}
+document.addEventListener('pointerdown', unlock, {once:true});
+document.addEventListener('keydown', unlock, {once:true});
+
+/* ---- 托盘 ---- */
+function fmtSize(bytes){
+  if(!bytes && bytes !== 0) return '';
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+function addToTray(name, size){
+  const li = document.createElement('li');
+  li.className = 'file';
+  const fn = document.createElement('span');
+  fn.className = 'fname';
+  fn.textContent = name;
+  fn.title = name;                       /* 长文件名不撑破布局，完整名放 title */
+  li.appendChild(fn);
+  if(size !== undefined && size !== null){
+    const fs = document.createElement('span');
+    fs.className = 'fsize';
+    fs.textContent = fmtSize(size);
+    li.appendChild(fs);
+  }
+  els.filelist.appendChild(li);
+  updateCount();
+  return li;
+}
+function updateCount(){
+  els.trayCount.textContent = String(queue.length + els.filelist.querySelectorAll('.file:not(.sucked)').length);
+}
+
+/* ---- 纸屑 ---- */
+function spawnShred(){
+  const f = els.shredField;
+  const h = f.clientHeight || 80;
+  const el = document.createElement('i');
+  el.className = 'shred';
+  const w = 3 + Math.random() * 5;
+  const hh = 10 + Math.random() * 22;
+  const dur = 900 + Math.random() * 700;
+  el.style.setProperty('--x', (Math.random() * 34 - 17) + 'px');
+  el.style.setProperty('--sx', (Math.random() * 40 - 20) + 'px');
+  el.style.setProperty('--sy', (h - 4 - Math.random() * 16) + 'px');
+  el.style.setProperty('--sr', (Math.random() * 720 - 360) + 'deg');
+  el.style.setProperty('--dur', dur + 'ms');
+  el.style.setProperty('--delay', (Math.random() * 120) + 'ms');
+  el.style.setProperty('--fade', (Math.max(6000, dur + 1200) + Math.random() * 3000) + 'ms');
+  el.style.setProperty('--w', w + 'px');
+  el.style.setProperty('--h', hh + 'px');
+  el.style.setProperty('--c', SHRED_COLORS[Math.floor(Math.random() * SHRED_COLORS.length)]);
+  f.appendChild(el);
+  while(f.children.length > 170) f.removeChild(f.firstChild);
+}
+
+/* ---- 单个文件被碎掉 ---- */
+function shredOne(card){
+  return new Promise(function(resolve){
+    /* 1) 纸飞进进纸口 */
+    requestAnimationFrame(function(){
+      const slot = els.feedSlot.getBoundingClientRect();
+      const rect = card.getBoundingClientRect();
+      const dx = (slot.left + slot.width / 2) - (rect.left + rect.width / 2);
+      const dy = slot.top - rect.top;
+      card.style.setProperty('--dx', dx + 'px');
+      card.style.setProperty('--dy', dy + 'px');
+      card.classList.add('sucked');
+      Sound.gulp();
+      els.lamp.classList.add('lit');
+      setTimeout(function(){ els.machine.classList.add('shaking'); }, 240);
+    });
+
+    /* 2) 纸屑从出纸口喷出，每条落一次声音，间隔随机 30–60ms */
+    const DUR = 1300;
+    const t0 = performance.now();
+    const iv = setInterval(function(){
+      spawnShred();
+      Sound.shred();
+      if(performance.now() - t0 > DUR) clearInterval(iv);
+    }, 30 + Math.random() * 30);
+
+    setTimeout(function(){
+      clearInterval(iv);
+      els.machine.classList.remove('shaking');
+      Sound.humStop();
+      els.lamp.classList.remove('lit');
+      if(card.parentNode) card.parentNode.removeChild(card);
+      updateCount();
+      resolve();
+    }, DUR + 520);
+  });
+}
+
+async function run(){
+  if(running) return;
+  running = true;
+  els.demoBtn.disabled = true;
+  els.final.classList.remove('show');
+  while(queue.length){
+    const card = queue.shift();
+    Sound.humStart();
+    await shredOne(card);
+  }
+  /* 碎完 → 一声叮 → 收尾文案 */
+  setTimeout(function(){
+    Sound.ding();
+    els.final.classList.add('show');
+  }, 420);
+  running = false;
+  els.demoBtn.disabled = false;
+}
+
+function reset(){
+  els.final.classList.remove('show');
+  els.shredField.innerHTML = '';
+  els.filelist.innerHTML = '';
+  queue = [];
+  updateCount();
+}
+
+/* ---- 拖拽真实文件（只取 file.name，不读内容） ---- */
+['dragenter','dragover'].forEach(function(t){
+  document.addEventListener(t, function(e){
+    e.preventDefault();
+    if(e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    document.body.classList.add('dragging');
+  });
+});
+document.addEventListener('dragleave', function(e){
+  if(e.relatedTarget === null) document.body.classList.remove('dragging');
+});
+document.addEventListener('drop', function(e){
+  e.preventDefault();
+  document.body.classList.remove('dragging');
+  unlock();
+  const files = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || []);
+  if(!files.length) return;
+  if(!running && els.final.classList.contains('show')) reset();
+  files.forEach(function(f){ queue.push(addToTray(f.name, f.size)); });
+  run();
+});
+
+/* ---- 演示删除 ---- */
+els.demoBtn.addEventListener('click', function(){
+  unlock();
+  if(running) return;
+  if(!queue.length && !els.filelist.querySelectorAll('.file').length) reset();
+  DEMO_FILES.forEach(function(n){ queue.push(addToTray(n, 1024 * (120 + Math.floor(Math.random()*900)))); });
+  run();
+});
+</script>
+</body>
+</html>

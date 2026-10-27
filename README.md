@@ -8,6 +8,8 @@
 
 ![preview](docs/preview.png)
 
+> 想直接看效果？打开 [`examples/demo-shredder.html`](examples/demo-shredder.html) 就行，单击即可运行。
+
 ---
 
 ## 它做什么
@@ -53,6 +55,10 @@ skill 会自己定配色、选文案、生成 HTML、自检，然后交给你一
 shredder-theater/
 ├── README.md
 ├── LICENSE
+├── docs/
+│   └── preview.png                 # 实际产出截图
+├── examples/
+│   └── demo-shredder.html          # 可直接打开的示例成品
 └── skills/
     └── shredder-theater/
         ├── SKILL.md                    # 执行规约：流程 / 产出契约 / 失败处理
